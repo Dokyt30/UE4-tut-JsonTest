@@ -13,7 +13,7 @@
 #include <fstream>
 #include "Serialization/JsonWriter.h"
 #include "Runtime/Core/Public/Misc/FileHelper.h"
-#include "Runtime/Json/Public/Serialization/JsonReader.h"
+#include "Runtime/Json/Public/Json.h"
 
 static const FName DebugSaveLoadParamTabName("DebugSaveLoadParam");
 
@@ -117,10 +117,6 @@ FReply FDebugSaveLoadParamModule::OnClickedLoadButton()
 		FString filepath_str = FPaths::ProjectLogDir() / "DebugSaveData.json";
 		const std::string filepath(TCHAR_TO_UTF8(*filepath_str));
 		if (InputBoxWidget.IsValid()) {
-			const FText InputText = InputBoxWidget->GetText();
-			FString _tmpStr = InputText.ToString();
-			const std::string edittext(TCHAR_TO_UTF8(*_tmpStr));
-
 
 			FString JsonStr;
 			FFileHelper::LoadFileToString(JsonStr, *filepath_str);
@@ -171,8 +167,30 @@ FReply FDebugSaveLoadParamModule::OnClickedSaveButton()
 			FString _tmpStr = InputText.ToString();
 			const std::string edittext(TCHAR_TO_UTF8(*_tmpStr));
 
-			std::ofstream ostr(filepath, std::ios::app);
-			ostr << edittext << std::endl;
+			FString JsonStr;
+			// JsonReader! ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+			TSharedRef<TJsonWriter<>> JsonWriter = TJsonWriterFactory<>::Create(&JsonStr);
+			TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+
+			JsonWriter->WriteObjectStart();
+			JsonWriter->WriteValue("name", _tmpStr);
+			JsonWriter->WriteObjectEnd();
+			JsonWriter->Close();
+
+			if (FJsonSerializer::Serialize(JsonObject.ToSharedRef(), JsonWriter, false))
+			{
+				FFileHelper::SaveStringToFile(JsonStr, *filepath_str);
+			}
+
+			//if (FJsonSerializer::Serialize(JsonReader, JsonObject) && JsonObject.IsValid())
+			//{
+			//	FString recievedInt = JsonObject->GetStringField(TEXT("name"));
+			//	const FText InputText = FText::FromString(recievedInt);
+			//	InputBoxWidget->SetText(InputText);
+			//}
+			//FFileHelper::SaveStringToFile(JsonStr, *filepath_str);
+			//std::ofstream ostr(filepath, std::ios::app);
+			//ostr << edittext << std::endl;
 		}
 	}
 	return FReply::Handled();
